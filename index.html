@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bar Chart</title>
+</head>
+<body>
+    <script src="https://cdn.freecodecamp.org/testable-projects-fcc/v1/bundle.js"></script>
+    <style>
+        body {
+            background-color: rgb(39, 61, 95);
+            color: white;
+        }
+        #title {
+            text-align: center;
+        }
+        .board {
+            /* background-color: blueviolet; */
+            display: flex;
+            justify-content: center;
+        }
+        svg {
+            background-color: burlywood;
+            margin: 0 auto;
+        }
+        .bar {
+            fill:red;
+        }
+        .bar:hover {
+            fill:azure;
+        }
+        #tooltip {
+            position: absolute;
+            top: 300px;
+            left: 15vw;
+            color: black;
+            text-align: center;
+            font-family: sans-serif;
+            background-color: aliceblue;
+            border-radius: 4px;
+            padding: 4px 6px;
+            min-width: 180px;
+        }
+    </style>
+    <script src="https://d3js.org/d3.v5.js"></script>
+    <div class="container">
+        <h1 id="title"></h1>
+        <div class="board"></div>
+    </div>
+    <script>
+        fetch("https://raw.githubusercontent.com/freeCodeCamp/ProjectReferenceData/master/GDP-data.json")
+        .then(response => response.json())
+        .then(data => {
+            // console.log(data.name);
+            json = data
+            str_data_base = JSON.stringify(data)
+            console.log(str_data_base)
+            document.getElementById('title').innerHTML = json.name + " (" + json.code + ")";
+            data_base = data.data
+            
+            const svg_width = 800;
+            const svg_height = 480;
+            const padding = 46;
+            const bar_width = (svg_width - 2 * padding) / (data_base.length);
+
+            const max_height = svg_height - ( 2 * padding );
+            //y = max_height * ( Gdp / maxGdp );
+            
+            const svg = d3.select(".board")
+              .append("svg")
+              .attr("width", svg_width)
+              .attr("height", svg_height);
+            
+            let dates = data_base.map( i => new Date(i[0]) )
+            // console.log(dates)
+
+            const maxDate = d3.max(dates, d => d );
+            const minDate = d3.min(dates, d => d );
+            const maxGdp = d3.max(data_base, d => d[1]);
+            const minGdp = d3.min(data_base, d => d[1]); 
+
+            let div = d3.select("body").append("div")	
+                        .attr("id", "tooltip")
+                        .style("opacity", 0)
+                        .style("transition", ".2s");
+
+            svg.selectAll("rect")
+               .data(data_base)
+               .enter()
+               .append("rect")
+               .attr("class", "bar")
+               .attr("data-date", d => d[0])
+               .attr("data-gdp", d => d[1])
+               .attr("width", bar_width)
+               .attr("height", d => max_height * ( d[1] / maxGdp ))
+               .attr("x", (d,i) => bar_width * i + padding )
+               .attr("y", (d, i) => svg_height - padding - ( max_height * ( d[1] / maxGdp ) ) )
+               .on("mouseover", d => {
+                   div.style("opacity", 1)
+                   div.attr("data-date", d[0])
+                      .html( d[1] + " Billion $") ;
+                } )
+                .on("mouseout", d => { div.style("opacity", 0) })
+                .on("mousemove", (d , e) => { 
+                    div.style("transform", "translate(" + (e * 2) + "px)")
+                 });
+
+            const xScale = d3.scaleTime()
+                             .domain([minDate , maxDate])
+                             .range([padding, svg_width - padding]);
+
+            svg.append("g")
+                .attr("transform", "translate(0," + ( svg_height - padding ) + ")")
+                .call(d3.axisBottom(xScale))
+                .attr("id", "x-axis")
+                .attr("fill", "white")
+                .style("color", "black")
+                
+            const yScale = d3.scaleLinear()
+                            .domain([maxGdp, 0])
+                            .range([padding, svg_height - padding]);
+                
+            svg.append("g")
+                .attr("transform", "translate(" + padding + ", 0)")
+                .call(d3.axisLeft(yScale))
+                .attr("id", "y-axis")
+                .style("color", "black")
+            });
+    </script>
+</body>
+</html>
